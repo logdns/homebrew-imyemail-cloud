@@ -23,7 +23,7 @@ It is required once per machine. After that, the short install command is:
 brew install imyemail-cloud
 ```
 
-The standard explicit cask form also works without a separate tap command:
+The standard explicit cask form also works:
 
 ```bash
 brew tap logdns/imyemail-cloud
