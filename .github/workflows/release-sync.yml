@@ -1,0 +1,95 @@
+name: sync latest release
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 9 * * *"
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash -euo pipefail {0}
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: "1"
+  HOMEBREW_NO_INSTALL_CLEANUP: "1"
+
+jobs:
+  update-cask:
+    runs-on: macos-14
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out tap
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@f8d4222eb633e65c2a0157383cf80861fc7fae7f # 2026.09.07.1
+
+      - name: Set up git
+        id: git_setup
+        uses: Homebrew/actions/git-user-config@f8d4222eb633e65c2a0157383cf80861fc7fae7f # 2026.09.07.1
+
+      - name: Resolve and verify latest macOS release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          release_json=$(gh api repos/logdns/imyemail-cloud/releases/latest)
+          tag=$(jq -r '.tag_name' <<<"$release_json")
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          version=${tag#v}
+          asset=$(jq -er '[.assets[].name | select(test("^imyemail-cloud-macos-arm64-[0-9]{8}-unsigned\\.zip$"))] | if length == 1 then .[0] else error("expected exactly one macOS ZIP") end' <<<"$release_json")
+          jq -e --arg checksum "$asset.sha256" '.assets | any(.name == $checksum)' <<<"$release_json" >/dev/null
+
+          download_dir=$(mktemp -d)
+          gh release download "$tag" --repo logdns/imyemail-cloud \
+            --pattern "$asset" --pattern "$asset.sha256" --dir "$download_dir"
+          (cd "$download_dir" && shasum -a 256 -c "$asset.sha256")
+          sha256=$(shasum -a 256 "$download_dir/$asset" | awk '{print $1}')
+          url='https://github.com/logdns/imyemail-cloud/releases/download/v#{version}/'"$asset"
+
+          current_version=$(ruby -ne 'puts $1 if $_ =~ /^  version "([^"]+)"/' Casks/imyemail-cloud.rb)
+          current_sha256=$(ruby -ne 'puts $1 if $_ =~ /^  sha256 "([^"]+)"/' Casks/imyemail-cloud.rb)
+          current_url=$(ruby -ne 'puts $1 if $_ =~ /^  url "([^"]+)"/' Casks/imyemail-cloud.rb)
+          if [[ "$version" == "$current_version" && "$sha256" == "$current_sha256" && "$url" == "$current_url" ]]; then
+            echo "changed=false" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          VERSION="$version" SHA256="$sha256" URL="$url" ruby <<'RUBY'
+          path = "Casks/imyemail-cloud.rb"
+          content = File.read(path)
+          content.sub!(/^  version "[^"]+"$/, "  version \"#{ENV.fetch("VERSION")}\"")
+          content.sub!(/^  sha256 "[^"]+"$/, "  sha256 \"#{ENV.fetch("SHA256")}\"")
+          content.sub!(/^  url "[^"]+"$/, "  url \"#{ENV.fetch("URL")}\"")
+          File.write(path, content)
+          RUBY
+
+          echo "changed=true" >>"$GITHUB_OUTPUT"
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+
+      - name: Audit update
+        if: steps.release.outputs.changed == 'true'
+        run: |
+          brew style --cask "$GITHUB_REPOSITORY/imyemail-cloud"
+          brew audit --cask --strict "$GITHUB_REPOSITORY/imyemail-cloud"
+
+      - name: Open update pull request
+        if: steps.release.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          branch="automation/imyemail-cloud-$VERSION"
+          git checkout -B "$branch"
+          git add Casks/imyemail-cloud.rb
+          git commit -m "Update imyemail-cloud to $VERSION"
+          git push --force-with-lease origin "$branch"
+          if [[ -z "$(gh pr list --head "$branch" --state open --json url --jq '.[0].url // empty')" ]]; then
+            gh pr create --base main --head "$branch" \
+              --title "Update imyemail-cloud to $VERSION" \
+              --body "Automated cask update from the verified GitHub Latest Release."
+          fi
