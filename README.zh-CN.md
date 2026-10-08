@@ -26,11 +26,10 @@ brew install imyemail-cloud
 brew install --cask logdns/imyemail-cloud/imyemail-cloud
 ```
 
-启动应用或使用命令行：
+从“应用程序”启动客户端。Homebrew 同时安装 `$(brew --prefix)/bin/imyemail-cloud` 命令行链接，但当前 `--help` 调用可能等待邮件引擎，不建议用它做安装后的快速测试：
 
 ```bash
 open -a imyemail-cloud
-imyemail-cloud --help
 ```
 
 ## 更新与卸载
@@ -49,6 +48,7 @@ brew uninstall imyemail-cloud
 - 正常卸载不会删除邮件数据或钥匙串凭据。
 
 包哈希、签名状态和生产发布限制见[发布文档](https://github.com/logdns/imyemail-cloud/blob/main/docs/RELEASE.md)。
+其他平台与校验方法见[安装指南](https://github.com/logdns/imyemail-cloud/blob/main/docs/INSTALL.zh-CN.md)。
 
 ## Brewfile
 

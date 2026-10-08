@@ -31,11 +31,12 @@ brew trust --tap logdns/imyemail-cloud
 brew install --cask logdns/imyemail-cloud/imyemail-cloud
 ```
 
-Launch the application from Applications, or run the CLI:
+Launch the application from Applications. The CLI link is also installed at
+`$(brew --prefix)/bin/imyemail-cloud`; do not use it as an installation smoke test
+because the current `--help` invocation may wait for the mail engine:
 
 ```bash
 open -a imyemail-cloud
-imyemail-cloud --help
 ```
 
 ## Upgrade and uninstall
@@ -58,6 +59,8 @@ brew uninstall imyemail-cloud
 
 For package hashes, signing status, and production-release limitations, see the
 [release documentation](https://github.com/logdns/imyemail-cloud/blob/main/docs/RELEASE.md).
+For other platforms and checksum verification, see the
+[installation guide](https://github.com/logdns/imyemail-cloud/blob/main/docs/INSTALL.md).
 
 ## Brewfile
 
