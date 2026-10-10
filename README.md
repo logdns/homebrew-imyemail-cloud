@@ -1,74 +1,50 @@
-# Homebrew tap for imyemail-cloud
+# Homebrew tap for imyemail-cloud — two editions
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [Main repository](https://github.com/logdns/imyemail-cloud)
+[English](README.md) · [简体中文](README.zh-CN.md) · [Choose with screenshots](https://github.com/logdns/imyemail-cloud#choose-your-edition)
 
-[imyemail-cloud](https://github.com/logdns/imyemail-cloud) is an MIT-licensed,
-multi-platform native email client. This tap installs the macOS Apple Silicon
-application and its `imyemail-cloud` command-line interface.
+| Package | Version | Macs | Application / CLI |
+| --- | --- | --- | --- |
+| `imyemail-cloud-native` | 0.2.4 | Apple Silicon, macOS 14+ | `imyemail-cloud-native.app` / `imyemail-cloud-native` |
+| `imyemail-cloud-mygo` | 0.3.4 preview | Intel / Apple Silicon, macOS 14+ | `imyemail-cloud-mygo.app` / `imyemail-cloud-mygo` |
 
-## Install
-
-Tap this repository once, then install with the requested short name:
-
-```bash
-brew tap logdns/imyemail-cloud
-brew trust --tap logdns/imyemail-cloud
-brew install imyemail-cloud
-```
-
-`brew trust` is a Homebrew 7 supply-chain confirmation for third-party taps.
-It is required once per machine. After that, the short install command is:
-
-```bash
-brew install imyemail-cloud
-```
-
-The standard explicit cask form also works:
+## Choose and install
 
 ```bash
 brew tap logdns/imyemail-cloud
 brew trust --tap logdns/imyemail-cloud
-brew install --cask logdns/imyemail-cloud/imyemail-cloud
+brew install imyemail-cloud-native  # platform-native edition
+# OR, or install alongside native:
+brew install imyemail-cloud-mygo    # Go-native desktop preview
 ```
 
-Launch the application from Applications. The CLI link is also installed at
-`$(brew --prefix)/bin/imyemail-cloud`; do not use it as an installation smoke test
-because the current `--help` invocation may wait for the mail engine:
-
-```bash
-open -a imyemail-cloud
-```
-
-## Upgrade and uninstall
+Homebrew 7 requires one-time third-party tap trust. Both are MIT licensed; MyGo is a preview, not feature-equivalent to native. The applications and data are separate; installing one never migrates or replaces the other.
 
 ```bash
 brew update
-brew upgrade imyemail-cloud
-brew uninstall imyemail-cloud
+brew upgrade imyemail-cloud-native
+brew upgrade imyemail-cloud-mygo
+HOMEBREW_NO_INSTALL_CLEANUP=1 brew uninstall imyemail-cloud-native
+HOMEBREW_NO_INSTALL_CLEANUP=1 brew uninstall imyemail-cloud-mygo
 ```
 
-## Requirements and release boundary
+Only use the commands for your chosen edition. Normal uninstall retains profiles and OS-vault credentials. Never use `--zap` as an upgrade step.
 
-- Apple Silicon (`arm64`)
-- macOS 14 Sonoma or newer
-- The current package is ad-hoc signed and not Apple-notarized. Homebrew checks
-  its pinned SHA-256 before installation, but macOS may still require approval
-  in System Settings > Privacy & Security before the first launch.
-- This tap does not delete mailbox data or Keychain credentials during a normal
-  uninstall.
+## Existing native users
 
-For package hashes, signing status, and production-release limitations, see the
-[release documentation](https://github.com/logdns/imyemail-cloud/blob/main/docs/RELEASE.md).
-For other platforms and checksum verification, see the
-[installation guide](https://github.com/logdns/imyemail-cloud/blob/main/docs/INSTALL.md).
+The legacy `imyemail-cloud` cask remains pinned to 0.2.1 and conflicts only with the new native cask. Close the old app and back up its database and Keychain; then `HOMEBREW_NO_INSTALL_CLEANUP=1 brew uninstall --cask imyemail-cloud` followed by `brew install imyemail-cloud-native`. Native Bundle ID/data/vault remain unchanged; do not run the old/new native app together. MyGo remains independent.
+
+## Verification and independent updates
+
+Casks pin actual release URLs and SHA-256. New macOS apps use the stable self-signed release certificate, **not Apple Developer ID/notarization or public trust**. Verify the publisher fingerprint before normal System Settings approval; do not disable Gatekeeper. See [install/upgrade/rollback](https://github.com/logdns/imyemail-cloud/blob/main/docs/INSTALL.md) and [signature verification](https://github.com/logdns/imyemail-cloud/blob/main/docs/SIGNING.md).
+
+Daily/manual sync selects native `native-v*` stable and MyGo `mygo-v*` preview releases independently. It verifies the pinned certificate, signed checksum manifest and recomputed package hashes before proposing a PR, then explicitly dispatches cask checks for that branch (bot-created PRs do not automatically trigger push/PR workflows). CI installs/verifies/uninstalls both casks on supported architectures without cleanup or real mail data. Review the branch's checks before merging; no automatic merge. Legacy release assets and tags are never rewritten.
 
 ## Brewfile
 
 ```ruby
 tap "logdns/imyemail-cloud"
-cask "imyemail-cloud"
+cask "imyemail-cloud-native"
+cask "imyemail-cloud-mygo"
 ```
 
-## License
-
-[MIT](LICENSE)
+Choose one or retain both lines. [MIT](LICENSE).

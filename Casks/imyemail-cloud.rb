@@ -8,12 +8,12 @@ cask "imyemail-cloud" do
   homepage "https://imy.email/"
 
   livecheck do
-    url :url
-    strategy :github_latest
+    skip "Legacy native package; migrate explicitly to imyemail-cloud-native"
   end
 
   depends_on arch: :arm64
   depends_on macos: :sonoma
+  conflicts_with cask: "logdns/imyemail-cloud/imyemail-cloud-native"
 
   app "imyemail-cloud.app"
   binary "#{appdir}/imyemail-cloud.app/Contents/MacOS/imyemail-cloud"
@@ -21,6 +21,9 @@ cask "imyemail-cloud" do
   uninstall quit: "email.imy.cloud"
 
   caveats <<~EOS
+    Legacy native cask, retained at 0.2.1. New users should install
+    imyemail-cloud-native or the independent imyemail-cloud-mygo preview.
+    Back up native profile/Keychain before migrating; do not use --zap.
     This open-source development build is ad-hoc signed and is not Apple-notarized.
     macOS may require approval in System Settings > Privacy & Security before
     the first launch. Release and signing details:

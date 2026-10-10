@@ -1,16 +1,13 @@
-name: cask checks
+name: Both cask checks
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
+  workflow_dispatch:
 
-permissions: {}
-
-defaults:
-  run:
-    shell: bash -xeuo pipefail {0}
+permissions:
+  contents: read
 
 env:
   HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -18,42 +15,69 @@ env:
 
 jobs:
   cask:
-    runs-on: macos-14
-    permissions:
-      actions: read
-      checks: read
-      contents: read
-      pull-requests: read
+    name: ${{ matrix.token }} (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { token: imyemail-cloud-native, runner: macos-14, arch: arm64, id: email.imy.cloud, exe: ChckMail }
+          - { token: imyemail-cloud-mygo, runner: macos-14, arch: arm64, id: email.imy.cloud.mygo, exe: imyemail-cloud-mygo }
+          - { token: imyemail-cloud-mygo, runner: macos-15-intel, arch: x86_64, id: email.imy.cloud.mygo, exe: imyemail-cloud-mygo }
+    defaults:
+      run:
+        shell: bash
     steps:
-      - name: Set up Homebrew
-        id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@f8d4222eb633e65c2a0157383cf80861fc7fae7f # 2026.09.07.1
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: Homebrew/actions/setup-homebrew@f8d4222eb633e65c2a0157383cf80861fc7fae7f
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
+          python-version: "3.11"
+      - name: Verify independent selection and tamper rejection
+        run: python3 scripts/test-sync-editions.py
       - name: Audit and style
         run: |
-          brew style --cask "$GITHUB_REPOSITORY/imyemail-cloud"
-          brew audit --cask --strict "$GITHUB_REPOSITORY/imyemail-cloud"
-          brew livecheck --cask "$GITHUB_REPOSITORY/imyemail-cloud"
-
-      - name: Install with the public short command
+          brew style --cask "$GITHUB_REPOSITORY/${{ matrix.token }}"
+          brew audit --cask --strict "$GITHUB_REPOSITORY/${{ matrix.token }}"
+          brew livecheck --cask "$GITHUB_REPOSITORY/${{ matrix.token }}"
+      - name: Install with independent short token
         run: |
           brew trust --tap "$GITHUB_REPOSITORY"
-          brew install imyemail-cloud
-
-      - name: Verify installed application and CLI
+          brew install --cask '${{ matrix.token }}'
+      - name: Verify installed identity, architecture, version and signer
         run: |
-          test -d /Applications/imyemail-cloud.app
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' /Applications/imyemail-cloud.app/Contents/Info.plist)" = email.imy.cloud
-          expected_version=$(brew info --cask --json=v2 "$GITHUB_REPOSITORY/imyemail-cloud" | jq -r '.casks[0].version')
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /Applications/imyemail-cloud.app/Contents/Info.plist)" = "$expected_version"
-          file /Applications/imyemail-cloud.app/Contents/MacOS/ChckMail | grep -F 'arm64'
-          codesign --verify --deep --strict --verbose=2 /Applications/imyemail-cloud.app
-          codesign -dv --verbose=4 /Applications/imyemail-cloud.app 2>&1 | grep -F 'Signature=adhoc'
-          test -L "$(brew --prefix)/bin/imyemail-cloud"
-
-      - name: Uninstall
+          set -euo pipefail
+          app='/Applications/${{ matrix.token }}.app'
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" = '${{ matrix.id }}'
+          version=$(brew info --cask --json=v2 "$GITHUB_REPOSITORY/${{ matrix.token }}" | jq -r '.casks[0].version')
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" = "$version"
+          file "$app/Contents/MacOS/${{ matrix.exe }}" | grep -F '${{ matrix.arch }}'
+          codesign --verify --deep --strict "$app"
+          codesign -d --extract-certificates="$RUNNER_TEMP/edition-leaf" "$app"
+          fingerprint=$(openssl x509 -inform DER -in "$RUNNER_TEMP/edition-leaf0" -outform DER | shasum -a 256 | awk '{print $1}')
+          test "$fingerprint" = 476ea6e573714e9c46a43471b5938d791e1c3851beb7b3eef8269cf084f48548
+          test -L "$(brew --prefix)/bin/${{ matrix.token }}"
+      - name: Verify both editions install side by side
+        if: matrix.token == 'imyemail-cloud-native'
         run: |
-          brew uninstall imyemail-cloud
-          test ! -e /Applications/imyemail-cloud.app
+          brew install --cask imyemail-cloud-mygo
+          test -d /Applications/imyemail-cloud-native.app
+          test -d /Applications/imyemail-cloud-mygo.app
+          test -L "$(brew --prefix)/bin/imyemail-cloud-native"
+          test -L "$(brew --prefix)/bin/imyemail-cloud-mygo"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' /Applications/imyemail-cloud-mygo.app/Contents/Info.plist)" = email.imy.cloud.mygo
+      - name: Uninstall without deleting accounts or unrelated dependencies
+        run: |
+          brew uninstall --cask '${{ matrix.token }}'
+          test ! -e '/Applications/${{ matrix.token }}.app'
+      - name: Verify native removal preserves MyGo then remove fixture installation
+        if: matrix.token == 'imyemail-cloud-native'
+        run: |
+          test -d /Applications/imyemail-cloud-mygo.app
+          test -L "$(brew --prefix)/bin/imyemail-cloud-mygo"
+          brew uninstall --cask imyemail-cloud-mygo
+          test ! -e /Applications/imyemail-cloud-mygo.app
+      - name: Style retained legacy cask
+        if: matrix.token == 'imyemail-cloud-native'
+        run: brew style --cask "$GITHUB_REPOSITORY/imyemail-cloud"

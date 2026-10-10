@@ -1,62 +1,50 @@
-# imyemail-cloud Homebrew 源
+# imyemail-cloud Homebrew 源：双版本
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [主项目仓库](https://github.com/logdns/imyemail-cloud)
+[English](README.md) · [简体中文](README.zh-CN.md) · [看截图选择下载](https://github.com/logdns/imyemail-cloud/blob/main/README.zh-CN.md)
 
-[imyemail-cloud](https://github.com/logdns/imyemail-cloud) 是 MIT 开源的多端原生邮件客户端。这个 Homebrew tap 会安装 Apple Silicon macOS 应用，并提供同名的 `imyemail-cloud` 命令行入口。
+| 包名 | 版本 | macOS 支持 | app / 命令 |
+| --- | --- | --- | --- |
+| `imyemail-cloud-native` | 0.2.4 | Apple Silicon、macOS 14+ | `imyemail-cloud-native.app` / `imyemail-cloud-native` |
+| `imyemail-cloud-mygo` | 0.3.4 预览 | Intel / Apple Silicon、macOS 14+ | `imyemail-cloud-mygo.app` / `imyemail-cloud-mygo` |
 
-## 安装
-
-每台 Mac 首次使用时执行：
+## 选择安装
 
 ```bash
 brew tap logdns/imyemail-cloud
 brew trust --tap logdns/imyemail-cloud
-brew install imyemail-cloud
+brew install imyemail-cloud-native
+# 选择 MyGo，或与原生版并存：
+brew install imyemail-cloud-mygo
 ```
 
-`brew trust` 是 Homebrew 7 针对第三方 tap 的供应链确认，每台机器只需执行一次。完成后，日常安装命令就是：
-
-```bash
-brew install imyemail-cloud
-```
-
-也可以使用完整 cask 名称：
-
-```bash
-brew install --cask logdns/imyemail-cloud/imyemail-cloud
-```
-
-从“应用程序”启动客户端。Homebrew 同时安装 `$(brew --prefix)/bin/imyemail-cloud` 命令行链接，但当前 `--help` 调用可能等待邮件引擎，不建议用它做安装后的快速测试：
-
-```bash
-open -a imyemail-cloud
-```
-
-## 更新与卸载
+Homebrew 7 首次信任第三方源一次。两版均 MIT 开源；MyGo 是桌面预览，不等于原生版全部功能。两版账号/数据独立，不自动迁移或覆盖另一版。
 
 ```bash
 brew update
-brew upgrade imyemail-cloud
-brew uninstall imyemail-cloud
+brew upgrade imyemail-cloud-native
+brew upgrade imyemail-cloud-mygo
+HOMEBREW_NO_INSTALL_CLEANUP=1 brew uninstall imyemail-cloud-native
+HOMEBREW_NO_INSTALL_CLEANUP=1 brew uninstall imyemail-cloud-mygo
 ```
 
-## 要求与发布边界
+只执行所选版本的命令。普通卸载保留邮件和系统凭据，不用 `--zap`、purge、autoremove 升级。
 
-- Apple Silicon（`arm64`）
-- macOS 14 Sonoma 或更高版本
-- 当前开发包采用 ad-hoc 签名，未经过 Apple 公证。Homebrew 会在安装前核对固定 SHA-256，但 macOS 首次启动时仍可能要求在“系统设置 > 隐私与安全性”中确认允许打开。
-- 正常卸载不会删除邮件数据或钥匙串凭据。
+## 旧原生用户
 
-包哈希、签名状态和生产发布限制见[发布文档](https://github.com/logdns/imyemail-cloud/blob/main/docs/RELEASE.md)。
-其他平台与校验方法见[安装指南](https://github.com/logdns/imyemail-cloud/blob/main/docs/INSTALL.zh-CN.md)。
+旧 `imyemail-cloud` cask 固定保留 0.2.1，与新原生 cask 互斥，不与 MyGo 冲突。先关闭旧 app、备份数据库/Keychain，执行 `HOMEBREW_NO_INSTALL_CLEANUP=1 brew uninstall --cask imyemail-cloud`，再 `brew install imyemail-cloud-native`。原生 Bundle ID/数据/钥匙库不变，不同时启动旧/新原生 app。
+
+## 校验、同步与维护
+
+两 cask 独立固定实际 Release URL 和 SHA-256。新包采用固定证书自签，**不是 Apple Developer ID、公证或默认公信**。先核对发布者指纹，再按系统正常方式允许启动，不关闭 Gatekeeper。见[安装与回滚](https://github.com/logdns/imyemail-cloud/blob/main/docs/INSTALL.zh-CN.md)、[验签](https://github.com/logdns/imyemail-cloud/blob/main/docs/SIGNING.md)。
+
+每日/手动同步分别选择 `native-v*` 稳定版和 `mygo-v*` 预览版，不依赖单一 Latest 选择两版。固定证书指纹、验签清单、下载复算后提出更新 PR，并显式为该分支触发 cask 检查（机器人 PR 不自动触发 push/PR 工作流）。CI 对支持架构安装、检查版本/身份/架构/签名/CLI 后卸载，禁用 cleanup，不读取真实邮箱。维护者确认分支检查后再合并，不自动合并；旧包/标签不重写。
 
 ## Brewfile
 
 ```ruby
 tap "logdns/imyemail-cloud"
-cask "imyemail-cloud"
+cask "imyemail-cloud-native"
+cask "imyemail-cloud-mygo"
 ```
 
-## 协议
-
-[MIT](LICENSE)
+选择一项或保留两项。[MIT](LICENSE)。
