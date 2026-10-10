@@ -11,9 +11,9 @@ cask "imyemail-cloud" do
     skip "Legacy native package; migrate explicitly to imyemail-cloud-native"
   end
 
+  conflicts_with cask: "logdns/imyemail-cloud/imyemail-cloud-native"
   depends_on arch: :arm64
   depends_on macos: :sonoma
-  conflicts_with cask: "logdns/imyemail-cloud/imyemail-cloud-native"
 
   app "imyemail-cloud.app"
   binary "#{appdir}/imyemail-cloud.app/Contents/MacOS/imyemail-cloud"

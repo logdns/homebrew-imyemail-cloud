@@ -13,9 +13,9 @@ cask "imyemail-cloud-native" do
     strategy :github_latest
   end
 
+  conflicts_with cask: "logdns/imyemail-cloud/imyemail-cloud"
   depends_on arch: :arm64
   depends_on macos: :sonoma
-  conflicts_with cask: "logdns/imyemail-cloud/imyemail-cloud"
 
   app "imyemail-cloud-native.app"
   binary "#{appdir}/imyemail-cloud-native.app/Contents/MacOS/imyemail-cloud", target: "imyemail-cloud-native"
