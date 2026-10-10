@@ -108,12 +108,8 @@ def cask_mygo(version, hashes):
   arch arm: "arm64", intel: "amd64"
 
   version "{version}"
-  on_arm do
-    sha256 "{arm}"
-  end
-  on_intel do
-    sha256 "{intel}"
-  end
+  sha256 arm:   "{arm}",
+         intel: "{intel}"
 
   url "https://github.com/{REPOSITORY}/releases/download/mygo-v#{{version}}/imyemail-cloud-mygo-#{{version}}-darwin-#{{arch}}-selfsigned.zip"
   name "imyemail-cloud-mygo"

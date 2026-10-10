@@ -2,12 +2,8 @@ cask "imyemail-cloud-mygo" do
   arch arm: "arm64", intel: "amd64"
 
   version "0.3.4"
-  on_arm do
-    sha256 "f902b0ff07cfa8dda98d846d652701eb5aa0694aa9f541634f52b0d95307f6ae"
-  end
-  on_intel do
-    sha256 "e4e40f0b08ddaa81a8a18509f7cb028a61c2c00828d37d6e80dd7d2796f78601"
-  end
+  sha256 arm:   "f902b0ff07cfa8dda98d846d652701eb5aa0694aa9f541634f52b0d95307f6ae",
+         intel: "e4e40f0b08ddaa81a8a18509f7cb028a61c2c00828d37d6e80dd7d2796f78601"
 
   url "https://github.com/logdns/imyemail-cloud/releases/download/mygo-v#{version}/imyemail-cloud-mygo-#{version}-darwin-#{arch}-selfsigned.zip"
   name "imyemail-cloud-mygo"
